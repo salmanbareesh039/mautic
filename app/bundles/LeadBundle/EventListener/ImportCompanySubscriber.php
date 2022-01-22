@@ -90,7 +90,8 @@ final class ImportCompanySubscriber implements EventSubscriberInterface
                 $event->import->getMatchedFields(),
                 $event->rowData,
                 $event->import->getDefault('owner'),
-                $event->import->getDefault('skip_if_exists')
+                $event->import->getDefault('list'),
+                (bool) $event->import->getDefault('skip_if_exists')
             );
             $event->setWasMerged((bool) $merged);
             $event->stopPropagation();

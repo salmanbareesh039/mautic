@@ -28,6 +28,7 @@ use Mautic\LeadBundle\Event\LeadChangeCompanyEvent;
 use Mautic\LeadBundle\Exception\UniqueFieldNotFoundException;
 use Mautic\LeadBundle\Form\Type\CompanyType;
 use Mautic\LeadBundle\LeadEvents;
+use Mautic\UserBundle\Entity\User;
 use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
@@ -71,6 +72,11 @@ class CompanyModel extends CommonFormModel implements AjaxLookupModelInterface
     private $repoSetup = false;
 
     /**
+     * @var ListModel
+     */
+    private $listModel;
+
+    /**
      * @var CompanyDeduper
      */
     private $companyDeduper;
@@ -78,11 +84,12 @@ class CompanyModel extends CommonFormModel implements AjaxLookupModelInterface
     /**
      * CompanyModel constructor.
      */
-    public function __construct(FieldModel $leadFieldModel, Session $session, EmailValidator $validator, CompanyDeduper $companyDeduper)
+    public function __construct(FieldModel $leadFieldModel, Session $session, EmailValidator $validator, ListModel $listModel, CompanyDeduper $companyDeduper)
     {
         $this->leadFieldModel = $leadFieldModel;
         $this->session        = $session;
         $this->emailValidator = $validator;
+        $this->listModel      = $listModel;
         $this->companyDeduper = $companyDeduper;
     }
 
@@ -758,15 +765,16 @@ class CompanyModel extends CommonFormModel implements AjaxLookupModelInterface
      * @param array $fields
      * @param array $data
      * @param null  $owner
+     * @param null  $list
      * @param bool  $skipIfExists
      *
      * @return bool|null
      *
      * @throws \Exception
      */
-    public function import($fields, $data, $owner = null, $skipIfExists = false)
+    public function import($fields, $data, $owner = null, $list = null, $skipIfExists = false)
     {
-        $company = $this->importCompany($fields, $data, $owner, false, $skipIfExists);
+        $company = $this->importCompany($fields, $data, $owner, false, $list, $skipIfExists);
 
         if (null === $company) {
             throw new \Exception($this->translator->trans('mautic.company.error.notfound', [], 'flashes'));
@@ -780,15 +788,16 @@ class CompanyModel extends CommonFormModel implements AjaxLookupModelInterface
     }
 
     /**
-     * @param array $fields
-     * @param array $data
-     * @param null  $owner
+     * @param array             $fields
+     * @param array             $data
+     * @param array<int|string> $list
+     * @param null              $owner
      *
-     * @return bool|null
+     * @return Company|null
      *
      * @throws \Exception
      */
-    public function importCompany($fields, $data, $owner = null, $persist = true, $skipIfExists = false)
+    public function importCompany($fields, $data, $owner = null, $persist = true, $list = null, $skipIfExists = false)
     {
         try {
             $duplicateCompanies = $this->companyDeduper->checkForDuplicateCompanies($this->getFieldData($fields, $data));
@@ -829,7 +838,7 @@ class CompanyModel extends CommonFormModel implements AjaxLookupModelInterface
         unset($fields['modifiedByUser']);
 
         if (null !== $owner) {
-            $company->setOwner($this->em->getReference('MauticUserBundle:User', $owner));
+            $company->setOwner($this->em->getReference(User::class, $owner));
         }
 
         $fieldData = $this->getFieldData($fields, $data);
@@ -879,6 +888,14 @@ class CompanyModel extends CommonFormModel implements AjaxLookupModelInterface
 
         if ($persist) {
             $this->saveEntity($company);
+        }
+
+        if (null !== $list && $company->getId()) {
+            $companyContactIds = $this->getCompanyLeadRepository()->getCompanyLeads($company->getId());
+            $contactIds        = array_column($companyContactIds, 'lead_id');
+            foreach ($contactIds as $contactId) {
+                $this->listModel->addLead($contactId, [$list], true);
+            }
         }
 
         return $company;
