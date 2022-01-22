@@ -63,29 +63,9 @@ class FieldsBuilder
     public function getLeadFilter($prefix, $segmentPrefix)
     {
         $filters = $this->getLeadFieldsColumns($prefix);
+        $this->appendSegmentFilter($filters, $segmentPrefix);
 
-        $segmentPrefix = $this->sanitizePrefix($segmentPrefix);
-        $prefix        = $this->sanitizePrefix($prefix);
-
-        // Append segment filters
-        $userSegments = $this->listModel->getUserLists();
-
-        $list = [];
-        foreach ($userSegments as $segment) {
-            $list[$segment['id']] = $segment['name'];
-        }
-
-        $segmentKey           = $segmentPrefix.'leadlist_id';
-        $filters[$segmentKey] = [
-            'alias'     => 'segment_id',
-            'label'     => 'mautic.core.filter.lists',
-            'type'      => 'select',
-            'list'      => $list,
-            'operators' => [
-                'eq' => 'mautic.core.operator.equals',
-            ],
-        ];
-
+        $prefix                = $this->sanitizePrefix($prefix);
         $ownerPrefix           = $prefix.'owner_id';
         $ownersList            = [];
         $owners                = $this->userModel->getUserList('', 0);
@@ -99,6 +79,41 @@ class FieldsBuilder
         ];
 
         return $filters;
+    }
+
+    /**
+     * @param array<mixed> $filters
+     * @param string       $segmentPrefix
+     */
+    public function appendSegmentFilter(array &$filters, $segmentPrefix = 's.'): void
+    {
+        $segmentPrefix        = $this->sanitizePrefix($segmentPrefix);
+        $segmentKey           = $segmentPrefix.'leadlist_id';
+        $filters[$segmentKey] =  $this->getSegmentFilter();
+    }
+
+    /**
+     * @return array<string, array<int|string, mixed>|string>
+     */
+    private function getSegmentFilter(): array
+    {
+        // Append segment filters
+        $userSegments = $this->listModel->getUserLists();
+
+        $list = [];
+        foreach ($userSegments as $segment) {
+            $list[$segment['id']] = $segment['name'];
+        }
+
+        return [
+                'alias'     => 'segment_id',
+                'label'     => 'mautic.core.filter.lists',
+                'type'      => 'select',
+                'list'      => $list,
+                'operators' => [
+                    'eq' => 'mautic.core.operator.equals',
+                ],
+        ];
     }
 
     /**

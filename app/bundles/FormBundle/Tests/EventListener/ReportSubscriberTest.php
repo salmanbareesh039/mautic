@@ -17,6 +17,8 @@ use Mautic\CoreBundle\Translation\Translator;
 use Mautic\FormBundle\Entity\SubmissionRepository;
 use Mautic\FormBundle\EventListener\ReportSubscriber;
 use Mautic\LeadBundle\Model\CompanyReportData;
+use Mautic\LeadBundle\Report\FieldsBuilder;
+use Mautic\ReportBundle\Entity\Report;
 use Mautic\ReportBundle\Event\ReportBuilderEvent;
 use Mautic\ReportBundle\Event\ReportGeneratorEvent;
 use Mautic\ReportBundle\Event\ReportGraphEvent;
@@ -32,14 +34,21 @@ class ReportSubscriberTest extends TestCase
      */
     private $subscriber;
 
+    /**
+     * @var FieldsBuilder
+     */
+    private $fieldBuilderMock;
+
     public function setUp(): void
     {
         parent::setUp();
+        $this->fieldBuilderMock = $this->createMock(FieldsBuilder::class);
+
         defined('MAUTIC_TABLE_PREFIX') or define('MAUTIC_TABLE_PREFIX', '');
 
         $this->companyReportData    = $this->createMock(CompanyReportData::class);
         $this->submissionRepository = $this->createMock(SubmissionRepository::class);
-        $this->subscriber           = new ReportSubscriber($this->companyReportData, $this->submissionRepository);
+        $this->subscriber           = new ReportSubscriber($this->companyReportData, $this->submissionRepository, $this->fieldBuilderMock);
     }
 
     public function testOnReportBuilderAddsFormAndFormSubmissionReports()
@@ -154,6 +163,7 @@ class ReportSubscriberTest extends TestCase
                 'addCampaignByChannelJoin',
                 'applyDateFilters',
                 'setQueryBuilder',
+                'getReport',
             ])
             ->getMock();
 
@@ -172,6 +182,10 @@ class ReportSubscriberTest extends TestCase
         $mockEvent->expects($this->once())
             ->method('getContext')
             ->willReturn('form.submissions');
+
+        $mockEvent->expects($this->once())
+            ->method('getReport')
+            ->willReturn(new Report());
 
         $this->subscriber->onReportGenerate($mockEvent);
     }
