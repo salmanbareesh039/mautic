@@ -29,6 +29,7 @@ use Mautic\LeadBundle\Event\LeadChangeCompanyEvent;
 use Mautic\LeadBundle\Exception\UniqueFieldNotFoundException;
 use Mautic\LeadBundle\Form\Type\CompanyType;
 use Mautic\LeadBundle\LeadEvents;
+use Mautic\UserBundle\Entity\User;
 use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
@@ -810,7 +811,7 @@ class CompanyModel extends CommonFormModel implements AjaxLookupModelInterface
      *
      * @return Company|null
      *
-     * @throws \Exception
+     * @throws \Doctrine\ORM\ORMException
      */
     public function importCompany($fields, $data, $owner = null, $persist = true, $skipIfExists = false)
     {
@@ -853,7 +854,7 @@ class CompanyModel extends CommonFormModel implements AjaxLookupModelInterface
         unset($fields['modifiedByUser']);
 
         if (null !== $owner) {
-            $company->setOwner($this->em->getReference('MauticUserBundle:User', $owner));
+            $company->setOwner($this->em->getReference(User::class, $owner));
         }
 
         $fieldData = $this->getFieldData($fields, $data);
