@@ -50,6 +50,35 @@ class SubmissionModelTest extends FormTestAbstract
         $this->assertFalse($submissionModel->saveSubmission($post, $server, $form, $request));
     }
 
+    public function testGetNotOverwriteFieldsData()
+    {
+        $profileFields = [
+            'email'     => 'test@test.com',
+            'firstname' => 'firstname',
+        ];
+
+        $data = [
+            'email'    => 'test@test.com',
+            'firstname'=> 'change',
+        ];
+
+        $notOverwriteFields = [];
+
+        $submissionModel     = $this->getSubmissionModel();
+        $reflection          = new \ReflectionClass(SubmissionModel::class);
+        $method              = $reflection->getMethod('getNotOverwriteFieldsData');
+        $method->setAccessible(true);
+        $result = $method->invokeArgs($submissionModel, [$profileFields, $data, $notOverwriteFields]);
+        $this->assertSame($data, $result);
+
+        $notOverwriteFields = [
+            'firstname',
+        ];
+
+        $result = $method->invokeArgs($submissionModel, [$profileFields, $data, $notOverwriteFields]);
+        $this->assertSame(['email' => 'test@test.com'], $result);
+    }
+
     public function testNormalizeValues()
     {
         $submissionModel     = $this->getSubmissionModel();

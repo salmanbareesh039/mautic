@@ -145,6 +145,11 @@ class Field
     private $alwaysDisplay;
 
     /**
+     * @var bool
+     */
+    private $leadFieldNotOverwrite;
+
+    /**
      * @var string
      */
     private $parent;
@@ -235,6 +240,8 @@ class Field
         $builder->addNullableField('containerAttributes', 'string', 'container_attr');
 
         $builder->addNullableField('leadField', 'string', 'lead_field');
+
+        $builder->addNullableField('leadFieldNotOverwrite', 'boolean', 'lead_field_not_overwrite');
 
         $builder->addNullableField('saveResult', 'boolean', 'save_result');
 
@@ -1035,5 +1042,15 @@ class Field
         }
 
         return null;
+    }
+
+    public function isLeadFieldNotOverwrite(): ?bool
+    {
+        return $this->leadFieldNotOverwrite;
+    }
+
+    public function setLeadFieldNotOverwrite(?bool $leadFieldNotOverwrite)
+    {
+        $this->leadFieldNotOverwrite = $leadFieldNotOverwrite;
     }
 }

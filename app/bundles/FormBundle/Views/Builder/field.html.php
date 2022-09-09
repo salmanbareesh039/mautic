@@ -139,6 +139,7 @@ $conditionsTabError = (isset($form['conditions']) && ($view['form']->containsErr
             <div role="tabpanel" class="tab-pane" id="leadfields">
                 <div class="row">
                     <div class="col-md-6">
+                        <label class="control-label">&nbsp;</label>
                         <?php $fieldGroups = $form['leadField']->vars['choices'];
                               $data        = $form['leadField']->vars['data'];
                         ?>
@@ -171,6 +172,11 @@ $conditionsTabError = (isset($form['conditions']) && ($view['form']->containsErr
                         </select>
                         <?php unset($form['leadField']); ?>
                     </div>
+                    <?php if (isset($form['leadFieldNotOverwrite'])): ?>
+                    <div class="col-md-6">
+                        <?php echo $view['form']->row($form['leadFieldNotOverwrite']); ?>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
             <?php endif; ?>

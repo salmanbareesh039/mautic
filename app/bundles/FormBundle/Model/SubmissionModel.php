@@ -38,6 +38,7 @@ use Mautic\LeadBundle\Entity\CompanyChangeLog;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Helper\CustomFieldValueHelper;
 use Mautic\LeadBundle\Helper\IdentifyCompanyHelper;
+use Mautic\LeadBundle\Helper\PrimaryCompanyHelper;
 use Mautic\LeadBundle\Model\CompanyModel;
 use Mautic\LeadBundle\Model\FieldModel as LeadFieldModel;
 use Mautic\LeadBundle\Model\LeadModel;
@@ -132,6 +133,11 @@ class SubmissionModel extends CommonFormModel
      */
     private $contactTracker;
 
+    /**
+     * @var PrimaryCompanyHelper
+     */
+    private $primaryCompanyHelper;
+
     public function __construct(
         IpLookupHelper $ipLookupHelper,
         TemplatingHelper $templatingHelper,
@@ -148,7 +154,8 @@ class SubmissionModel extends CommonFormModel
         DeviceTrackingServiceInterface $deviceTrackingService,
         FieldValueTransformer $fieldValueTransformer,
         DateHelper $dateHelper,
-        ContactTracker $contactTracker
+        ContactTracker $contactTracker,
+        PrimaryCompanyHelper $primaryCompanyHelper
     ) {
         $this->ipLookupHelper         = $ipLookupHelper;
         $this->templatingHelper       = $templatingHelper;
@@ -166,6 +173,7 @@ class SubmissionModel extends CommonFormModel
         $this->fieldValueTransformer  = $fieldValueTransformer;
         $this->dateHelper             = $dateHelper;
         $this->contactTracker         = $contactTracker;
+        $this->primaryCompanyHelper   = $primaryCompanyHelper;
     }
 
     /**
@@ -225,13 +233,14 @@ class SubmissionModel extends CommonFormModel
         // Get a list of components to build custom fields from
         $components = $this->formModel->getCustomComponents();
 
-        $fields           = $form->getFields();
-        $fieldArray       = [];
-        $results          = [];
-        $tokens           = [];
-        $leadFieldMatches = [];
-        $validationErrors = [];
-        $filesToUpload    = new UploadFileCrate();
+        $fields                       = $form->getFields();
+        $fieldArray                   = [];
+        $results                      = [];
+        $tokens                       = [];
+        $leadFieldMatches             = [];
+        $leadFieldMatchesNotOverwrite = [];
+        $validationErrors             = [];
+        $filesToUpload                = new UploadFileCrate();
 
         /** @var Field $f */
         foreach ($fields as $f) {
@@ -338,6 +347,10 @@ class SubmissionModel extends CommonFormModel
                 $leadValue = $value;
 
                 $leadFieldMatches[$leadField] = $leadValue;
+
+                if ($f->isLeadFieldNotOverwrite()) {
+                    $leadFieldMatchesNotOverwrite[] = $leadField;
+                }
             }
 
             $tokens["{formfield={$alias}}"] = $this->normalizeValue($value, $f);
@@ -385,7 +398,7 @@ class SubmissionModel extends CommonFormModel
 
         // Create/update lead
         if (!empty($leadFieldMatches)) {
-            $lead = $this->createLeadFromSubmit($form, $leadFieldMatches, $leadFields);
+            $lead = $this->createLeadFromSubmit($form, $leadFieldMatches, $leadFields, $leadFieldMatchesNotOverwrite);
         }
 
         $trackedDevice = $this->deviceTrackingService->getTrackedDevice();
@@ -927,7 +940,7 @@ class SubmissionModel extends CommonFormModel
      *
      * @throws ORMException
      */
-    protected function createLeadFromSubmit(Form $form, array $leadFieldMatches, $leadFields)
+    protected function createLeadFromSubmit(Form $form, array $leadFieldMatches, $leadFields, $notOverwriteFields = [])
     {
         //set the mapped data
         $inKioskMode   = $form->isInKioskMode();
@@ -1100,6 +1113,13 @@ class SubmissionModel extends CommonFormModel
         }
 
         //set the mapped fields
+
+        // not overwrite if value exist
+        if (!empty($notOverwriteFields)) {
+            $this->logger->debug('FORM: Do not overwrite contact fields to process '.implode(',', $notOverwriteFields));
+            $profileFields = $lead->getProfileFields();
+            $data          = $this->getNotOverwriteFieldsData($profileFields, $data, $notOverwriteFields);
+        }
         $this->leadModel->setFieldValues($lead, $data, false, true, true);
 
         // last active time
@@ -1124,6 +1144,13 @@ class SubmissionModel extends CommonFormModel
 
         $companyFieldMatches = $getCompanyData($leadFieldMatches);
         if (!empty($companyFieldMatches)) {
+            // not overwrite if value exist
+            if (!empty($notOverwriteFields)) {
+                $this->logger->debug('FORM: Do not overwrite contact\'s company fields to process '.implode(',', $notOverwriteFields));
+                $profileFields                = $this->primaryCompanyHelper->getProfileFieldsWithPrimaryCompany($lead);
+                $companyFieldMatches          = $this->getNotOverwriteFieldsData($profileFields, $companyFieldMatches, $notOverwriteFields);
+            }
+
             [$company, $leadAdded, $companyEntity] = IdentifyCompanyHelper::identifyLeadsCompany($companyFieldMatches, $lead, $this->companyModel);
             if ($leadAdded) {
                 $lead->addCompanyChangeLogEntry('form', 'Identify Company', 'Lead added to the company, '.$company['companyname'], $company['id']);
@@ -1176,6 +1203,19 @@ class SubmissionModel extends CommonFormModel
         }
 
         return true;
+    }
+
+    protected function getNotOverwriteFieldsData(array $profileFields, array $data, array $notOverwriteFields): array
+    {
+        foreach ($notOverwriteFields as $notOverwriteField) {
+            if (isset($data[$notOverwriteField])
+                && isset($profileFields[$notOverwriteField])
+                && '' !== $profileFields[$notOverwriteField]) {
+                unset($data[$notOverwriteField]);
+            }
+        }
+
+        return $data;
     }
 
     private function normalizeValue($value, Field $f): string
