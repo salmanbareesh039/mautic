@@ -1148,6 +1148,51 @@ class Email extends FormEntity implements VariantEntityInterface, TranslationEnt
     }
 
     /**
+     * Return clicks count of email.
+     *
+     * @param \Mautic\EmailBundle\Model\EmailModel $emailModel
+     */
+    public function getClicksCount($emailModel): int
+    {
+        $emailClicksResult = $emailModel->getEmailClickthroughHitCount($this->getId());
+        $emailClicks       = is_array($emailClicksResult) && count($emailClicksResult) > 0 ? $emailClicksResult[$this->getId()] : 0;
+
+        return $emailClicks;
+    }
+
+    /**
+     * Get CTR of email.
+     *
+     * @param int $emailClicks
+     */
+    public function getCtrPercentage($emailClicks = 0): float
+    {
+        return 0 !== $this->getSentCount(true) ? round($emailClicks / $this->getSentCount(true) * 100, 2) : 0;
+    }
+
+    /**
+     * Get total clicks and total unique clicks of email.
+     *
+     * @param Array<int, array<string,int>> $trackables Array of email's link
+     *
+     * @return Array<int>
+     */
+    public function getEmailClickCounters($trackables): array
+    {
+        $clickCounts = array_reduce($trackables, function ($accumulator, $link) {
+            $accumulator[0] += $link['hits'];
+            $accumulator[1] += $link['unique_hits'];
+
+            return $accumulator;
+        }, [
+            0,
+            0,
+        ]);
+
+        return $clickCounts;
+    }
+
+    /**
      * @return bool
      */
     public function getPublicPreview()
