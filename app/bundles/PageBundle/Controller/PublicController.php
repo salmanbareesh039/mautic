@@ -223,7 +223,11 @@ class PublicController extends CommonFormController
             }
 
             // Generate contents
-            $analytics = $this->get('mautic.helper.template.analytics')->getCode();
+            $gtmHelper = $this->get('mautic.helper.template.gtm');
+
+            $analytics   = $this->get('mautic.helper.template.analytics')->getCode();
+            $gtmHeadCode = $gtmHelper->hasLandingPageEnabled() ? $gtmHelper->getHeadGTMCode() : '';
+            $gtmBodyCode = $gtmHelper->hasLandingPageEnabled() ? $gtmHelper->getBodyGTMCode() : '';
 
             $BCcontent = $entity->getContent();
             $content   = $entity->getCustomHtml();
@@ -244,6 +248,11 @@ class PublicController extends CommonFormController
                     $this->factory->getHelper('template.assets')->addCustomDeclaration($analytics);
                 }
 
+                if (!empty($gtmHeadCode) && !empty($gtmBodyCode)) {
+                    $this->factory->getHelper('template.assets')->addCustomDeclaration($gtmHeadCode);
+                    $this->factory->getHelper('template.assets')->addCustomDeclaration($gtmBodyCode, 'bodyOpen');
+                }
+
                 $logicalName = $this->factory->getHelper('theme')->checkForTwigTemplate(':'.$template.':page.html.php');
 
                 $response = $this->render(
@@ -261,6 +270,12 @@ class PublicController extends CommonFormController
             } else {
                 if (!empty($analytics)) {
                     $content = str_replace('</head>', $analytics."\n</head>", $content);
+                }
+                if (!empty($gtmHeadCode) && !empty($gtmBodyCode)) {
+                    $content      = str_replace('<head>', "<head>\n".$gtmHeadCode, $content);
+                    $startBodyTag = stripos($content, '<body');
+                    $endBodyTag   = stripos($content, '>', $startBodyTag);
+                    $content      = substr_replace($content, $gtmBodyCode, $endBodyTag + 1, 0);
                 }
                 if ($entity->getNoIndex()) {
                     $content = str_replace('</head>', "<meta name=\"robots\" content=\"noindex\">\n</head>", $content);
@@ -309,7 +324,11 @@ class PublicController extends CommonFormController
             return $this->notFound();
         }
 
-        $analytics = $this->factory->getHelper('template.analytics')->getCode();
+        $gtmHelper = $this->get('mautic.helper.template.gtm');
+
+        $analytics   = $this->factory->getHelper('template.analytics')->getCode();
+        $gtmHeadCode = $gtmHelper->hasLandingPageEnabled() ? $gtmHelper->getHeadGTMCode() : '';
+        $gtmBodyCode = $gtmHelper->hasLandingPageEnabled() ? $gtmHelper->getBodyGTMCode() : '';
 
         $BCcontent = $entity->getContent();
         $content   = $entity->getCustomHtml();
@@ -324,6 +343,11 @@ class PublicController extends CommonFormController
             // Add the GA code to the template assets
             if (!empty($analytics)) {
                 $this->factory->getHelper('template.assets')->addCustomDeclaration($analytics);
+            }
+
+            if (!empty($gtmHeadCode) && !empty($gtmBodyCode)) {
+                $this->factory->getHelper('template.assets')->addCustomDeclaration($gtmHeadCode);
+                $this->factory->getHelper('template.assets')->addCustomDeclaration($gtmBodyCode, 'bodyOpen');
             }
 
             $logicalName = $this->factory->getHelper('theme')->checkForTwigTemplate(':'.$template.':page.html.php');
@@ -342,6 +366,12 @@ class PublicController extends CommonFormController
             $content = $response->getContent();
         } else {
             $content = str_replace('</head>', $analytics.$this->renderView('MauticPageBundle:Page:preview_header.html.php')."\n</head>", $content);
+            if (!empty($gtmHeadCode) && !empty($gtmBodyCode)) {
+                $content      = str_replace('<head>', "<head>\n".$gtmHeadCode, $content);
+                $startBodyTag = stripos($content, '<body');
+                $endBodyTag   = stripos($content, '>', $startBodyTag);
+                $content      = substr_replace($content, $gtmBodyCode, $endBodyTag + 1, 0);
+            }
         }
 
         $dispatcher = $this->get('event_dispatcher');
