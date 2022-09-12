@@ -590,6 +590,7 @@ return [
                     'mautic.stage.model.stage',
                     'mautic.category.model.category',
                     'mautic.asset.model.asset',
+                    'mautic.form.model.form',
                     'translator',
                 ],
             ],
@@ -1046,6 +1047,14 @@ return [
             ],
             'mautic.lead.query.builder.foreign.value' => [
                 'class'     => \Mautic\LeadBundle\Segment\Query\Filter\ForeignValueFilterQueryBuilder::class,
+                'arguments' => ['mautic.lead.model.random_parameter_name', 'event_dispatcher'],
+            ],
+            'mautic.lead.query.builder.foreign.value.firstsubmission' => [
+                'class'     => \Mautic\LeadBundle\Segment\Query\Filter\FirstSubmissionFilterQueryBuilder::class,
+                'arguments' => ['mautic.lead.model.random_parameter_name', 'event_dispatcher'],
+            ],
+            'mautic.lead.query.builder.foreign.value.lastsubmission' => [
+                'class'     => \Mautic\LeadBundle\Segment\Query\Filter\LastSubmissionFilterQueryBuilder::class,
                 'arguments' => ['mautic.lead.model.random_parameter_name', 'event_dispatcher'],
             ],
             'mautic.lead.query.builder.foreign.func' => [

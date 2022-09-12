@@ -316,6 +316,45 @@ final class FilterOperatorSubscriber implements EventSubscriberInterface
                 'operators'  => $this->typeOperatorProvider->getOperatorsForFieldType('default'),
                 'object'     => 'lead',
             ],
+            'submission_form' => [
+                'label'      => $this->translator->trans('mautic.lead.list.filter.submission_form'),
+                'operators'  => $this->typeOperatorProvider->getOperatorsForFieldType('multiselect'),
+                'object'     => 'lead',
+                'properties' => [
+                    'type' => 'forms',
+                    'list' => $this->fieldChoicesProvider->getChoicesForField('multiselect', 'forms'),
+                ],
+            ],
+            'first_submission_form' => [
+                'label'      => $this->translator->trans('mautic.lead.list.filter.first_submission_form'),
+                'properties' => [
+                    'type' => 'forms',
+                    'list' => $this->fieldChoicesProvider->getChoicesForField('multiselect', 'forms'),
+                ],
+                'operators'  => $this->typeOperatorProvider->getOperatorsForFieldType('multiselect'),
+                'object'     => 'lead',
+            ],
+            'last_submission_form' => [
+                'label'      => $this->translator->trans('mautic.lead.list.filter.last_submission_form'),
+                'properties' => [
+                    'type' => 'forms',
+                    'list' => $this->fieldChoicesProvider->getChoicesForField('multiselect', 'forms'),
+                ],
+                'operators'  => $this->typeOperatorProvider->getOperatorsForFieldType('multiselect'),
+                'object'     => 'lead',
+            ],
+            'first_submission_date' => [
+                'label'      => $this->translator->trans('mautic.lead.list.filter.first_submission_date'),
+                'properties' => ['type' => 'datetime'],
+                'operators'  => $this->typeOperatorProvider->getOperatorsForFieldType('default'),
+                'object'     => 'lead',
+            ],
+            'last_submission_date' => [
+                'label'      => $this->translator->trans('mautic.lead.list.filter.last_submission_date'),
+                'properties' => ['type' => 'datetime'],
+                'operators'  => $this->typeOperatorProvider->getOperatorsForFieldType('default'),
+                'object'     => 'lead',
+            ],
         ];
 
         foreach ($staticFields as $alias => $fieldOptions) {

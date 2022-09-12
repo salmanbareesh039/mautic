@@ -8,9 +8,11 @@ use Mautic\LeadBundle\LeadEvents;
 use Mautic\LeadBundle\Segment\Query\Filter\BaseFilterQueryBuilder;
 use Mautic\LeadBundle\Segment\Query\Filter\ChannelClickQueryBuilder;
 use Mautic\LeadBundle\Segment\Query\Filter\DoNotContactFilterQueryBuilder;
+use Mautic\LeadBundle\Segment\Query\Filter\FirstSubmissionFilterQueryBuilder;
 use Mautic\LeadBundle\Segment\Query\Filter\ForeignFuncFilterQueryBuilder;
 use Mautic\LeadBundle\Segment\Query\Filter\ForeignValueFilterQueryBuilder;
 use Mautic\LeadBundle\Segment\Query\Filter\IntegrationCampaignFilterQueryBuilder;
+use Mautic\LeadBundle\Segment\Query\Filter\LastSubmissionFilterQueryBuilder;
 use Mautic\LeadBundle\Segment\Query\Filter\SegmentReferenceFilterQueryBuilder;
 use Mautic\LeadBundle\Segment\Query\Filter\SessionsFilterQueryBuilder;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -269,6 +271,31 @@ class ContactSegmentFilterDictionary
             'type'          => ForeignValueFilterQueryBuilder::getServiceId(),
             'foreign_table' => 'asset_downloads',
             'field'         => 'asset_id',
+        ];
+        $this->filters['submission_form'] = [
+            'type'          => ForeignValueFilterQueryBuilder::getServiceId(),
+            'foreign_table' => 'form_submissions',
+            'field'         => 'form_id',
+        ];
+        $this->filters['first_submission_form'] = [
+            'type'          => FirstSubmissionFilterQueryBuilder::getServiceId(),
+            'foreign_table' => 'form_submissions',
+            'field'         => 'form_id',
+        ];
+        $this->filters['last_submission_form'] = [
+            'type'          => LastSubmissionFilterQueryBuilder::getServiceId(),
+            'foreign_table' => 'form_submissions',
+            'field'         => 'form_id',
+        ];
+        $this->filters['first_submission_date'] = [
+            'type'          => FirstSubmissionFilterQueryBuilder::getServiceId(),
+            'foreign_table' => 'form_submissions',
+            'field'         => 'date_submitted',
+        ];
+        $this->filters['last_submission_date'] = [
+            'type'          => LastSubmissionFilterQueryBuilder::getServiceId(),
+            'foreign_table' => 'form_submissions',
+            'field'         => 'date_submitted',
         ];
     }
 
