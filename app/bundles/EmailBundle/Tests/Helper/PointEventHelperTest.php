@@ -2,6 +2,7 @@
 
 namespace Mautic\EmailBundle\Tests\Helper;
 
+use Mautic\CategoryBundle\Entity\Category;
 use Mautic\CoreBundle\Factory\MauticFactory;
 use Mautic\EmailBundle\Entity\Email;
 use Mautic\EmailBundle\Helper\PointEventHelper;
@@ -42,11 +43,74 @@ class PointEventHelperTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(false, $result);
     }
 
+    public function testValidateEmail(): void
+    {
+        $categoryMock = $this->getMockBuilder(Category::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['getId'])
+            ->getMock();
+        $categoryMock->expects($this->any())
+            ->method('getId')->willReturn(1);
+
+        $emailMock = $this->getMockBuilder(Email::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['getId', 'getCategory'])
+            ->getMock();
+        $emailMock->expects($this->any())
+            ->method('getId')->willReturn(4);
+        $emailMock->expects($this->any())
+            ->method('getCategory')->willReturn($categoryMock);
+
+        // validate email id in point action
+        $this->assertEquals(true, PointEventHelper::validateEmail($emailMock, [
+            'properties' => [
+                'emails' => [
+                    0 => '4',
+                ],
+                'categories'  => [],
+                'triggerMode' => 'internalId',
+            ],
+        ]));
+
+        // validate email id not in point action
+        $this->assertEquals(false, PointEventHelper::validateEmail($emailMock, [
+            'properties' => [
+                'emails' => [
+                    0 => '21',
+                ],
+                'categories'  => [],
+                'triggerMode' => 'internalId',
+            ],
+        ]));
+
+        // validate category id in point action
+        $this->assertEquals(true, PointEventHelper::validateEmail($emailMock, [
+            'properties' => [
+                'emails'     => [],
+                'categories' => [
+                    0 => 1,
+                ],
+                'triggerMode' => 'internalId',
+            ],
+        ]));
+
+        // validate category id not in point action
+        $this->assertEquals(false, PointEventHelper::validateEmail($emailMock, [
+            'properties' => [
+                'emails'     => [],
+                'categories' => [
+                    0 => 5,
+                ],
+                'triggerMode' => 'internalId',
+            ],
+        ]));
+    }
+
     /**
      * @param bool $published
      * @param bool $success
      *
-     * @return \PHPUnit\Framework\MockObject\MockObject
+     * @return \PHPUnit\Framework\MockObject\MockObject&MauticFactory
      */
     private function getMockMauticFactory($published = true, $success = true)
     {
@@ -61,9 +125,9 @@ class PointEventHelperTest extends \PHPUnit\Framework\TestCase
             ->willReturnCallback(function ($model) use ($published, $success) {
                 switch ($model) {
                     case 'email':
-                        return $this->getMockEmail($published, $success);
+                        return $this->getMockEmailModel($published, $success);
                     case 'lead':
-                        return $this->getMockLead();
+                        return $this->createMock(LeadModel::class);
                 }
             });
 
@@ -71,33 +135,16 @@ class PointEventHelperTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @return \PHPUnit\Framework\MockObject\MockObject
+     * @return \PHPUnit\Framework\MockObject\MockObject&EmailModel
      */
-    private function getMockLead()
-    {
-        $mock = $this->getMockBuilder(LeadModel::class)
-            ->disableOriginalConstructor()
-            ->getMock()
-        ;
-
-        return $mock;
-    }
-
-    /**
-     * @param bool $published
-     * @param bool $success
-     *
-     * @return \PHPUnit\Framework\MockObject\MockObject
-     */
-    private function getMockEmail($published = true, $success = true)
+    private function getMockEmailModel(bool $published = true, bool $success = true)
     {
         $sendEmail = $success ? true : ['error' => 1];
 
         $mock = $this->getMockBuilder(EmailModel::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['getEntity', 'sendEmail'])
-            ->getMock()
-        ;
+            ->getMock();
 
         $mock->expects($this->any())
             ->method('getEntity')

@@ -67,7 +67,9 @@ class CategoryListType extends AbstractType
                 foreach ($categories as $l) {
                     $choices[$l['title']] = $l['id'];
                 }
-                $choices[$createNew] = 'new';
+                if ($options['with_create_new']) {
+                    $choices[$createNew] = 'new';
+                }
 
                 return $choices;
             },
@@ -76,6 +78,9 @@ class CategoryListType extends AbstractType
             'multiple'          => false,
             'placeholder'       => 'mautic.core.form.uncategorized',
             'attr'              => function (Options $options) {
+                if (!$options['with_create_new']) {
+                    return [];
+                }
                 $modalHeader = $this->translator->trans('mautic.category.header.new');
                 $newUrl = $this->router->generate('mautic_category_action', [
                     'objectAction' => 'new',
@@ -93,6 +98,9 @@ class CategoryListType extends AbstractType
         ]);
 
         $resolver->setRequired(['bundle']);
+        $resolver->setDefaults([
+            'with_create_new' => true,
+        ]);
     }
 
     /**
