@@ -3,11 +3,13 @@
 namespace Mautic\FormBundle\Tests\EventListener;
 
 use Doctrine\DBAL\Query\QueryBuilder;
+use Mautic\ChannelBundle\Helper\ChannelListHelper;
 use Mautic\CoreBundle\Helper\Chart\ChartQuery;
 use Mautic\CoreBundle\Translation\Translator;
 use Mautic\FormBundle\Entity\SubmissionRepository;
 use Mautic\FormBundle\EventListener\ReportSubscriber;
 use Mautic\LeadBundle\Model\CompanyReportData;
+use Mautic\ReportBundle\Entity\Report;
 use Mautic\ReportBundle\Event\ReportBuilderEvent;
 use Mautic\ReportBundle\Event\ReportGeneratorEvent;
 use Mautic\ReportBundle\Event\ReportGraphEvent;
@@ -30,6 +32,16 @@ class ReportSubscriberTest extends TestCase
      */
     private $subscriber;
 
+    /**
+     * @var \Mautic\LeadBundle\Segment\Query\QueryBuilder|\PHPUnit\Framework\MockObject\MockObject
+     */
+    private $queryBuilder;
+
+    /**
+     * @var ChannelListHelper|\PHPUnit\Framework\MockObject\MockObject
+     */
+    private $channelListHelper;
+
     public function setUp(): void
     {
         parent::setUp();
@@ -37,6 +49,8 @@ class ReportSubscriberTest extends TestCase
         $this->companyReportData    = $this->createMock(CompanyReportData::class);
         $this->submissionRepository = $this->createMock(SubmissionRepository::class);
         $this->subscriber           = new ReportSubscriber($this->companyReportData, $this->submissionRepository);
+        $this->queryBuilder         = $this->createMock(\Mautic\LeadBundle\Segment\Query\QueryBuilder::class);
+        $this->channelListHelper    = $this->createMock(ChannelListHelper::class);
     }
 
     public function testOnReportBuilderAddsFormAndFormSubmissionReports(): void
@@ -151,6 +165,7 @@ class ReportSubscriberTest extends TestCase
                 'addCampaignByChannelJoin',
                 'applyDateFilters',
                 'setQueryBuilder',
+                'getReport',
             ])
             ->getMock();
 
@@ -169,6 +184,10 @@ class ReportSubscriberTest extends TestCase
         $mockEvent->expects($this->once())
             ->method('getContext')
             ->willReturn('form.submissions');
+
+        $mockEvent->expects($this->once())
+            ->method('getReport')
+            ->willReturn(new Report());
 
         $this->subscriber->onReportGenerate($mockEvent);
     }
@@ -248,5 +267,18 @@ class ReportSubscriberTest extends TestCase
             ->willReturn(['a', 'b', 'c']);
 
         $this->subscriber->onReportGraphGenerate($mockEvent);
+    }
+
+    public function testGroupByDefaultConfigured(): void
+    {
+        $report             = new Report();
+        $report->setSource(ReportSubscriber::CONTEXT_FORM_SUBMISSION);
+        $event              = new ReportGeneratorEvent($report, [], $this->queryBuilder, $this->channelListHelper);
+        $subscriber         = new ReportSubscriber($this->companyReportData, $this->submissionRepository);
+        $this->queryBuilder->method('from')->willReturn($this->queryBuilder);
+        $this->queryBuilder->method('leftJoin')->willReturn($this->queryBuilder);
+        $this->assertFalse($event->hasGroupBy());
+
+        $subscriber->onReportGenerate($event);
     }
 }
