@@ -11,6 +11,7 @@ use Mautic\EmailBundle\Entity\Stat;
 use Mautic\EmailBundle\Event\QueueEmailEvent;
 use Mautic\EmailBundle\EventListener\EmailSubscriber;
 use Mautic\EmailBundle\Model\EmailModel;
+use Mautic\EmailBundle\Swiftmailer\Message\MauticMessage;
 use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\Translation\TranslatorInterface;
 
@@ -42,7 +43,7 @@ final class EmailSubscriberTest extends \PHPUnit\Framework\TestCase
     private $em;
 
     /**
-     * @var MockObject|\Swift_Message
+     * @var MockObject|MauticMessage
      */
     private $mockSwiftMessage;
 
@@ -60,7 +61,7 @@ final class EmailSubscriberTest extends \PHPUnit\Framework\TestCase
         $this->emailModel       = $this->createMock(EmailModel::class);
         $this->translator       = $this->createMock(TranslatorInterface::class);
         $this->em               = $this->createMock(EntityManager::class);
-        $this->mockSwiftMessage = $this->createMock(\Swift_Message::class);
+        $this->mockSwiftMessage = $this->createMock(MauticMessage::class);
         $this->subscriber       = new EmailSubscriber($this->ipLookupHelper, $this->auditLogModel, $this->emailModel, $this->translator, $this->em);
     }
 
@@ -100,5 +101,29 @@ final class EmailSubscriberTest extends \PHPUnit\Framework\TestCase
 
         $this->subscriber->onEmailResend($queueEmailEvent);
         $this->assertFalse($queueEmailEvent->shouldTryAgain());
+    }
+
+    public function testOnEmailFailed(): void
+    {
+        $this->mockSwiftMessage->leadIdHash = 'idhash';
+
+        $queueEmailEvent = new QueueEmailEvent($this->mockSwiftMessage);
+
+        $stat = new Stat();
+
+        $this->emailModel->expects($this->once())
+            ->method('getEmailStatus')
+            ->willReturn($stat);
+
+        $this->emailModel->expects($this->once())
+            ->method('getStatRepository')
+            ->willReturn(new class() {
+                public function saveEntity(Stat $stat): void
+                {
+                }
+            });
+
+        $this->subscriber->onEmailFailed($queueEmailEvent);
+        $this->assertTrue($stat->isFailed());
     }
 }
