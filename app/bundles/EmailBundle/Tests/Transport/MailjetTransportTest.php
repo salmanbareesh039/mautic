@@ -119,7 +119,7 @@ class MailjetTransportTest extends \PHPUnit\Framework\TestCase
     "CustomID": "4-bounce@test.com",
     "Payload": "",
     "blocked": "",
-    "hard_bounce": "",
+    "hard_bounce": "true",
     "error_related_to": "bounced",
     "error": "bounced"
   }, 
@@ -134,7 +134,7 @@ class MailjetTransportTest extends \PHPUnit\Framework\TestCase
     "CustomID": "5-bounce3@test-test.com",
     "Payload": "",
     "blocked": "",
-    "hard_bounce": "",
+    "hard_bounce": true,
     "error_related_to": "bounced",
     "error": "bounced"
   },
@@ -149,7 +149,7 @@ class MailjetTransportTest extends \PHPUnit\Framework\TestCase
     "CustomID": "",
     "Payload": "",
     "blocked": "",
-    "hard_bounce": "",
+    "hard_bounce": true,
     "error_related_to": "bounced",
     "error": "bounce without hash"
   }
