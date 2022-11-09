@@ -10,6 +10,7 @@ use Mautic\EmailBundle\Swiftmailer\SendGrid\SendGridApiResponse;
 use Mautic\EmailBundle\Swiftmailer\SendGrid\SendGridWrapper;
 use SendGrid\Mail;
 use SendGrid\Response;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 
 class SendGridApiFacadeTest extends \PHPUnit\Framework\TestCase
 {
@@ -27,6 +28,10 @@ class SendGridApiFacadeTest extends \PHPUnit\Framework\TestCase
             ->disableOriginalConstructor()
             ->getMock();
 
+        $dispatcher = $this->getMockBuilder(EventDispatcher::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
         $message = $this->getMockBuilder(\Swift_Mime_SimpleMessage::class)
             ->disableOriginalConstructor()
             ->getMock();
@@ -39,7 +44,7 @@ class SendGridApiFacadeTest extends \PHPUnit\Framework\TestCase
             ->disableOriginalConstructor()
             ->getMock();
 
-        $sendGridApiFacade = new SendGridApiFacade($sendGridWrapper, $sendGridApiMessage, $sendGridApiResponse);
+        $sendGridApiFacade = new SendGridApiFacade($sendGridWrapper, $sendGridApiMessage, $sendGridApiResponse, $dispatcher);
 
         $sendGridApiMessage->expects($this->once())
             ->method('getMessage')
@@ -72,6 +77,10 @@ class SendGridApiFacadeTest extends \PHPUnit\Framework\TestCase
             ->disableOriginalConstructor()
             ->getMock();
 
+        $dispatcher = $this->getMockBuilder(EventDispatcher::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
         $message = $this->getMockBuilder(\Swift_Mime_SimpleMessage::class)
             ->disableOriginalConstructor()
             ->getMock();
@@ -84,7 +93,7 @@ class SendGridApiFacadeTest extends \PHPUnit\Framework\TestCase
             ->disableOriginalConstructor()
             ->getMock();
 
-        $sendGridApiFacade = new SendGridApiFacade($sendGridWrapper, $sendGridApiMessage, $sendGridApiResponse);
+        $sendGridApiFacade = new SendGridApiFacade($sendGridWrapper, $sendGridApiMessage, $sendGridApiResponse, $dispatcher);
 
         $sendGridApiMessage->expects($this->once())
             ->method('getMessage')
@@ -121,6 +130,10 @@ class SendGridApiFacadeTest extends \PHPUnit\Framework\TestCase
             ->disableOriginalConstructor()
             ->getMock();
 
+        $dispatcher = $this->getMockBuilder(EventDispatcher::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
         $message = $this->getMockBuilder(\Swift_Mime_SimpleMessage::class)
             ->disableOriginalConstructor()
             ->getMock();
@@ -133,7 +146,7 @@ class SendGridApiFacadeTest extends \PHPUnit\Framework\TestCase
             ->disableOriginalConstructor()
             ->getMock();
 
-        $sendGridApiFacade = new SendGridApiFacade($sendGridWrapper, $sendGridApiMessage, $sendGridApiResponse);
+        $sendGridApiFacade = new SendGridApiFacade($sendGridWrapper, $sendGridApiMessage, $sendGridApiResponse, $dispatcher);
 
         $sendGridApiMessage->expects($this->once())
             ->method('getMessage')
