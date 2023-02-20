@@ -38,6 +38,11 @@ class User extends FormEntity implements UserInterface, \Serializable, Equatable
     private $plainPassword;
 
     /**
+     * Used for generate automatic password to user.
+     */
+    private string $automaticPassword = '';
+
+    /**
      * Used for updating account.
      *
      * @var string
@@ -356,6 +361,11 @@ class User extends FormEntity implements UserInterface, \Serializable, Equatable
         return $this->plainPassword;
     }
 
+    public function getAutomaticPassword(): string
+    {
+        return $this->automaticPassword;
+    }
+
     /**
      * Get current password (that a user has typed into a form).
      *
@@ -469,6 +479,13 @@ class User extends FormEntity implements UserInterface, \Serializable, Equatable
     public function setPlainPassword($plainPassword)
     {
         $this->plainPassword = $plainPassword;
+
+        return $this;
+    }
+
+    public function setAutomaticPassword(string $automaticPassword): self
+    {
+        $this->automaticPassword = $automaticPassword;
 
         return $this;
     }

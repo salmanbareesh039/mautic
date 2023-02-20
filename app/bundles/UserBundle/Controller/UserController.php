@@ -131,10 +131,11 @@ class UserController extends FormController
             if (!$cancelled = $this->isFormCancelled($form)) {
                 //check to see if the password needs to be rehashed
                 $formUser          = $this->request->request->get('user', []);
+                $automaticPassword = $formUser['automaticPassword'];
                 $submittedPassword = $formUser['plainPassword']['password'] ?? null;
-                $encoder           = $this->get('security.password_encoder');
-                $password          = $model->checkNewPassword($user, $encoder, $submittedPassword);
 
+                $encoder  = $this->get('security.password_encoder');
+                $password = $model->checkNewPassword($user, $encoder, $submittedPassword);
                 if ($valid = $this->isFormValid($form)) {
                     //form is valid so process the data
                     $user->setPassword($password);
@@ -166,7 +167,9 @@ class UserController extends FormController
                             $this->addFlash($message, $messageVars);
                         }
                     }
-
+                    if ($automaticPassword) {
+                        $model->sendCredentialsEmail($formUser['email'], $formUser['username'], $submittedPassword);
+                    }
                     $this->addFlash('mautic.core.notice.created', [
                         '%name%'      => $user->getName(),
                         '%menu_link%' => 'mautic_user_index',
