@@ -72,7 +72,6 @@ class CompanyObjectSubscriber implements EventSubscriberInterface
                 $event->getUpdateObjects()
             )
         );
-        $event->stopPropagation();
     }
 
     public function createCompanies(InternalObjectCreateEvent $event): void
@@ -82,7 +81,6 @@ class CompanyObjectSubscriber implements EventSubscriberInterface
         }
 
         $event->setObjectMappings($this->companyObjectHelper->create($event->getCreateObjects()));
-        $event->stopPropagation();
     }
 
     public function findCompaniesByIds(InternalObjectFindEvent $event): void
