@@ -6,6 +6,10 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping\Entity;
 use Mautic\CoreBundle\Doctrine\Mapping\ClassMetadataBuilder;
+use Mautic\CoreBundle\Model\AbTest\AbTestSettingsService;
+use Mautic\DynamicContentBundle\Entity\DynamicContent;
+use Mautic\EmailBundle\Entity\Email;
+use Mautic\PageBundle\Entity\Page;
 
 trait VariantEntityTrait
 {
@@ -15,14 +19,24 @@ trait VariantEntityTrait
     private $variantChildren;
 
     /**
-     * @var mixed
+     * @var VariantEntityInterface|Page|Email|DynamicContent|null
      **/
     private $variantParent;
 
     /**
-     * @var array
+     * @var array<string>
      */
-    private $variantSettings = [];
+    private $variantSettingsKeys = ['weight', 'winnerCriteria'];
+
+    /**
+     * @var array<string>
+     */
+    private $parentSettingsKeys = ['totalWeight', 'enableAbTest', 'winnerCriteria', 'sendWinnerDelay'];
+
+    /**
+     * @var array<int|bool|string>
+     */
+    private $variantSettings = ['totalWeight' => AbTestSettingsService::DEFAULT_AB_WEIGHT, 'enableAbTest' => false];
 
     /**
      * @var \DateTimeInterface|null
@@ -43,6 +57,7 @@ trait VariantEntityTrait
             ->setIndexBy('id')
             ->setOrderBy(['isPublished' => 'DESC'])
             ->mappedBy('variantParent')
+            ->cascadePersist()
             ->build();
 
         $builder->createField('variantSettings', 'array')
@@ -64,7 +79,7 @@ trait VariantEntityTrait
     public function addVariantChild(VariantEntityInterface $child)
     {
         if (!$this->variantChildren->contains($child)) {
-            $this->variantChildren[] = $child;
+            $this->variantChildren->add($child);
         }
 
         return $this;
@@ -131,13 +146,19 @@ trait VariantEntityTrait
      *
      * @return $this
      */
-    public function setVariantSettings($variantSettings)
+    public function setVariantSettings($variantSettings): self
     {
         if (method_exists($this, 'isChanged')) {
             $this->isChanged('variantSettings', $variantSettings);
         }
 
-        $this->variantSettings = $variantSettings;
+        $this->variantSettings = [];
+
+        foreach ($this->getSettingsKeys() as $key) {
+            if (array_key_exists($key, $variantSettings)) {
+                $this->variantSettings[$key] = $variantSettings[$key];
+            }
+        }
 
         return $this;
     }
@@ -160,10 +181,7 @@ trait VariantEntityTrait
         return $this->variantStartDate;
     }
 
-    /**
-     * @return $this
-     */
-    public function setVariantStartDate($variantStartDate)
+    public function setVariantStartDate($variantStartDate): self
     {
         if (method_exists($this, 'isChanged')) {
             $this->isChanged('variantStartDate', $variantStartDate);
@@ -189,6 +207,18 @@ trait VariantEntityTrait
         } else {
             return (!empty($parent) || count($children)) ? true : false;
         }
+    }
+
+    public function isParent(): bool
+    {
+        return $this->isVariant() && empty($this->getVariantParent());
+    }
+
+    public function getOnlyChildrenRelatedEntityIds(): array
+    {
+        $parentId = $this->isParent() ? $this->getId() : $this->getVariantParent()->getId();
+
+        return array_filter($this->getRelatedEntityIds(), fn ($relatedId) => $relatedId != $parentId);
     }
 
     /**
@@ -247,7 +277,7 @@ trait VariantEntityTrait
      */
     public function getRelatedEntityIds($publishedOnly = false)
     {
-        list($parent, $children) = $this->getVariants();
+        [$parent, $children] = $this->getVariants();
 
         // If parent is not published and only published has been requested, no need to proceed
         if ($parent && $publishedOnly && !$parent->isPublished()) {
@@ -273,11 +303,63 @@ trait VariantEntityTrait
     }
 
     /**
+     * @return string[]
+     */
+    private function getSettingsKeys()
+    {
+        if ($this->getVariantParent()) {
+            return $this->variantSettingsKeys;
+        } else {
+            return $this->parentSettingsKeys;
+        }
+    }
+
+    public function clearVariantSettings(): void
+    {
+        if (!$this->getVariantParent()) {
+            $this->variantSettings = [
+                'enableAbTest' => false,
+                'totalWeight'  => AbTestSettingsService::DEFAULT_AB_WEIGHT,
+            ];
+        } else {
+            $this->variantSettings = [];
+        }
+    }
+
+    public function isEnableAbTest(): bool
+    {
+        if ($this->getVariantParent()) {
+            return (bool) ($this->getVariantParent()->getVariantSettings()['enableAbTest'] ?? false);
+        }
+
+        return (bool) ($this->variantSettings['enableAbTest'] ?? false);
+    }
+
+    public function getVariantsPendingCount(int $pendingCount): int
+    {
+        if (!$this->isEnableAbTest()) {
+            return $pendingCount;
+        }
+
+        $totalWeight = $this->variantSettings['totalWeight'];
+        if ($this->getVariantParent()) {
+            $totalWeight =  $this->getVariantParent()->getVariantSettings()['totalWeight'];
+        }
+        $totalWeight =  (int) ($totalWeight ?? AbTestSettingsService::DEFAULT_TOTAL_WEIGHT);
+
+        $variants           = $this->getVariantChildren();
+        $variantCount       = count($variants) + 1;
+        $singleVariantCount = (int) ceil(($pendingCount / $variantCount) * ($totalWeight / 100));
+
+        return $singleVariantCount * $variantCount;
+    }
+
+    /**
      * @return mixed
      */
     protected function getAccumulativeVariantCount($getter)
     {
-        list($parent, $children) = $this->getVariants();
+        [$parent, $children]     = $this->getVariants();
         $count                   = $parent->$getter();
 
         if ($checkTranslations = method_exists($parent, 'getAccumulativeTranslationCount')) {
@@ -308,7 +390,7 @@ trait VariantEntityTrait
 
         /** @var TranslationEntityInterface $parentTranslation */
         /** @var ArrayCollection $childrenTranslations */
-        list($parentTranslation, $childrenTranslations) = $entity->getTranslations();
+        [$parentTranslation, $childrenTranslations] = $entity->getTranslations();
         if ($entity->getId() && $parentTranslation != $entity) {
             if (!$publishedOnly || $parentTranslation->isPublished()) {
                 $ids[] = $parentTranslation->getId();

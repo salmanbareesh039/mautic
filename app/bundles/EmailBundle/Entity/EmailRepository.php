@@ -4,6 +4,7 @@ namespace Mautic\EmailBundle\Entity;
 
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\ORM\Query;
+use Doctrine\ORM\Query\Expr;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Mautic\ChannelBundle\Entity\MessageQueue;
 use Mautic\CoreBundle\Entity\CommonRepository;
@@ -36,7 +37,7 @@ class EmailRepository extends CommonRepository
             );
         }
 
-        $results = $q->execute()->fetchAllAssociative();
+        $results = $q->executeQuery()->fetchAllAssociative();
 
         $dnc = [];
         foreach ($results as $r) {
@@ -434,7 +435,7 @@ class EmailRepository extends CommonRepository
      */
     protected function addSearchCommandWhereClause($q, $filter)
     {
-        list($expr, $parameters) = $this->addStandardSearchCommandWhereClause($q, $filter);
+        [$expr, $parameters] = $this->addStandardSearchCommandWhereClause($q, $filter);
         if ($expr) {
             return [$expr, $parameters];
         }
@@ -534,6 +535,33 @@ class EmailRepository extends CommonRepository
     }
 
     /**
+     * Clones email list cross-reference records and updates child emails to match the parent email.
+     *
+     * @param Email $entity the parent email entity
+     */
+    public function cloneFromParentToVariant(Email $entity): void
+    {
+        $parent    = $entity->getVariantParent() ?: $entity;
+        $hasParent = !empty($entity->getVariantParent());
+
+        if ($hasParent) {
+            $entity->setPublishUp($parent->getPublishUp());
+            $entity->setPublishDown($parent->getPublishDown());
+            $entity->setIsPublished($parent->getIsPublished());
+            $entity->setLists($parent->getLists()->toArray());
+        } else {
+            $variantsToUpdateFromParent = $entity->getVariantChildren()->toArray();
+            foreach ($variantsToUpdateFromParent as $variant) {
+                $variant->setPublishUp($parent->getPublishUp());
+                $variant->setPublishDown($parent->getPublishDown());
+                $variant->setIsPublished($parent->getIsPublished());
+                $variant->setLists($parent->getLists()->toArray());
+            }
+            $this->saveEntities($variantsToUpdateFromParent);
+        }
+    }
+
+    /**
      * Up the read/sent counts.
      *
      * @param int        $id
@@ -562,7 +590,7 @@ class EmailRepository extends CommonRepository
         $retrialLimit = 3;
         while ($retrialLimit >= 0) {
             try {
-                $q->execute();
+                $q->executeQuery();
 
                 return;
             } catch (\Doctrine\DBAL\Exception $e) {
@@ -653,5 +681,29 @@ class EmailRepository extends CommonRepository
             ->innerJoin('lc', MAUTIC_TABLE_PREFIX.'emails', 'e', 'e.category_id = lc.category_id')
             ->where($qb->expr()->eq('e.id', $emailId))
             ->andWhere('lc.manually_removed = 1');
+    }
+
+    /**
+     * Gets emails with published variants.
+     *
+     * @return array<Email>
+     */
+    public function getPublishedEmailsWithVariant()
+    {
+        $qb = $this->getEntityManager()
+            ->createQueryBuilder();
+        $expr = $this->getPublishedByDateExpression($qb, $this->getTableAlias());
+
+        $qb->select($this->getTableAlias())
+            ->from('MauticEmailBundle:Email', $this->getTableAlias())
+            ->innerJoin('MauticEmailBundle:Email', 'v', Expr\Join::WITH, $qb->expr()->andX(
+                $qb->expr()->eq($this->getTableAlias(), 'v.variantParent'),
+                $qb->expr()->eq('v.isPublished', true)
+            ))
+            ->where($expr);
+
+        $result = $qb->getQuery()->getResult();
+
+        return $result;
     }
 }

@@ -59,11 +59,20 @@ class EmailSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents()
     {
         return [
+            EmailEvents::EMAIL_PRE_SAVE       => ['cloneParentEmailDataForVariant', 0],
             EmailEvents::EMAIL_POST_SAVE      => ['onEmailPostSave', 0],
             EmailEvents::EMAIL_POST_DELETE    => ['onEmailDelete', 0],
             EmailEvents::EMAIL_FAILED         => ['onEmailFailed', 0],
             EmailEvents::EMAIL_RESEND         => ['onEmailResend', 0],
         ];
+    }
+
+    public function cloneParentEmailDataForVariant(Events\EmailEvent $event): void
+    {
+        $email = $event->getEmail();
+        if ($email->isVariant()) {
+            $this->emailModel->getRepository()->cloneFromParentToVariant($email);
+        }
     }
 
     /**

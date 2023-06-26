@@ -24,9 +24,6 @@ class ProcessFetchEmailCommand extends Command
      */
     private $fetcher;
 
-    /**
-     * ProcessFetchEmailCommand constructor.
-     */
     public function __construct(CoreParametersHelper $parametersHelper, Fetcher $fetcher)
     {
         parent::__construct();
@@ -35,9 +32,6 @@ class ProcessFetchEmailCommand extends Command
         $this->fetcher          = $fetcher;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     protected function configure()
     {
         $this

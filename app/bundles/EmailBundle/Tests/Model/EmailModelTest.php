@@ -15,6 +15,7 @@ use Mautic\CoreBundle\Helper\CoreParametersHelper;
 use Mautic\CoreBundle\Helper\IpLookupHelper;
 use Mautic\CoreBundle\Helper\ThemeHelperInterface;
 use Mautic\CoreBundle\Helper\UserHelper;
+use Mautic\CoreBundle\Model\AbTest\AbTestSettingsService;
 use Mautic\CoreBundle\Security\Permissions\CorePermissions;
 use Mautic\CoreBundle\Test\Doctrine\DBALMocker;
 use Mautic\CoreBundle\Translation\Translator;
@@ -27,6 +28,7 @@ use Mautic\EmailBundle\Entity\StatRepository;
 use Mautic\EmailBundle\Event\EmailEvent;
 use Mautic\EmailBundle\Helper\MailHelper;
 use Mautic\EmailBundle\Helper\StatsCollectionHelper;
+use Mautic\EmailBundle\Model\AbTest\EmailVariantConverterService;
 use Mautic\EmailBundle\Model\EmailModel;
 use Mautic\EmailBundle\Model\SendEmailToContact;
 use Mautic\EmailBundle\MonitoredEmail\Mailbox;
@@ -192,7 +194,17 @@ class EmailModelTest extends \PHPUnit\Framework\TestCase
     private $doNotContact;
 
     /**
-     * @var MockObject|CorePermissions
+     * @var AbTestSettingsService
+     */
+    private $abTestSettingsService;
+
+    /**
+     * @var EmailVariantConverterService|(EmailVariantConverterService&object&MockObject)|(EmailVariantConverterService&MockObject)|(object&MockObject)|MockObject
+     */
+    private $variantConverterService;
+
+    /**
+     * @var CorePermissions|(CorePermissions&object&MockObject)|(CorePermissions&MockObject)|(object&MockObject)|MockObject
      */
     private $corePermissions;
 
@@ -231,6 +243,8 @@ class EmailModelTest extends \PHPUnit\Framework\TestCase
         $this->contactTracker           = $this->createMock(ContactTracker::class);
         $this->doNotContact             = $this->createMock(DoNotContact::class);
         $this->statsCollectionHelper    = $this->createMock(StatsCollectionHelper::class);
+        $this->abTestSettingsService    = new AbTestSettingsService();
+        $this->variantConverterService  = $this->createMock(EmailVariantConverterService::class);
         $this->corePermissions          = $this->createMock(CorePermissions::class);
         $this->connection               = $this->createMock(Connection::class);
 
@@ -252,7 +266,9 @@ class EmailModelTest extends \PHPUnit\Framework\TestCase
             $this->doNotContact,
             $this->statsCollectionHelper,
             $this->corePermissions,
-            $this->connection
+            $this->connection,
+            $this->abTestSettingsService,
+            $this->variantConverterService,
         );
 
         $this->emailModel->setTranslator($this->translator);
@@ -293,6 +309,8 @@ class EmailModelTest extends \PHPUnit\Framework\TestCase
             ->will($this->returnValue(true));
         $this->emailEntity->method('isVariant')
             ->will($this->returnValue(true));
+        $this->emailEntity->method('getVariantSettings')
+            ->will($this->returnValue(['totalWeight' => '10']));
 
         $this->mailHelper->method('createEmailStat')
             ->will($this->returnCallback(
@@ -320,6 +338,8 @@ class EmailModelTest extends \PHPUnit\Framework\TestCase
             ->will($this->returnValue([]));
         $variantA->method('isPublished')
             ->will($this->returnValue(true));
+        $variantA->method('getIsPublished')
+            ->will($this->returnValue(true));
         $variantA->method('isVariant')
             ->will($this->returnValue(true));
         $variantA->method('getVariantSettings')
@@ -340,6 +360,8 @@ class EmailModelTest extends \PHPUnit\Framework\TestCase
         $variantB->method('getTranslations')
             ->will($this->returnValue([]));
         $variantB->method('isPublished')
+            ->will($this->returnValue(true));
+        $variantB->method('getIsPublished')
             ->will($this->returnValue(true));
         $variantB->method('isVariant')
             ->will($this->returnValue(true));
@@ -373,7 +395,7 @@ class EmailModelTest extends \PHPUnit\Framework\TestCase
         $this->companyModel->method('getRepository')
             ->willReturn($this->companyRepository);
 
-        $count    = 12;
+        $count    = 125;
         $contacts = [];
         while ($count > 0) {
             $contacts[] = [
@@ -400,147 +422,9 @@ class EmailModelTest extends \PHPUnit\Framework\TestCase
         }
         $counts = implode('; ', $counts);
 
-        $this->assertEquals(6, $emailSettings[1]['variantCount'], $counts);
-        $this->assertEquals(3, $emailSettings[2]['variantCount'], $counts);
-        $this->assertEquals(3, $emailSettings[3]['variantCount'], $counts);
-    }
-
-    /**
-     * Test that sending emails to contacts one at a time are according to A/B test weights.
-     */
-    public function testVariantEmailWeightsAreAppropriateForMultipleContactsSentOneAtATime(): void
-    {
-        $this->mailHelper->method('getMailer')->will($this->returnValue($this->mailHelper));
-        $this->mailHelper->method('flushQueue')->will($this->returnValue(true));
-        $this->mailHelper->method('addTo')->will($this->returnValue(true));
-        $this->mailHelper->method('queue')->will($this->returnValue([true, []]));
-        $this->mailHelper->method('setEmail')->will($this->returnValue(true));
-        $this->translator->expects($this->any())
-            ->method('hasId')
-            ->will($this->returnValue(false));
-
-        // Setup an email variant email
-        $variantDate = new \DateTime();
-        $this->emailEntity->expects($this->any())
-            ->method('getId')
-            ->will($this->returnValue(1));
-        $this->emailEntity->method('getTemplate')->will($this->returnValue(''));
-        $this->emailEntity->method('getSentCount')->will($this->returnValue(0));
-        $this->emailEntity->method('getVariantSentCount')->will($this->returnValue(0));
-        $this->emailEntity->method('getVariantStartDate')->will($this->returnValue($variantDate));
-        $this->emailEntity->method('getTranslations')->will($this->returnValue([]));
-        $this->emailEntity->method('isPublished')->will($this->returnValue(true));
-        $this->emailEntity->method('isVariant')->will($this->returnValue(true));
-
-        $this->mailHelper->method('createEmailStat')
-            ->will($this->returnCallback(
-                function () {
-                    $stat = new Stat();
-                    $stat->setEmail($this->emailEntity);
-
-                    return $stat;
-                }
-            ));
-
-        $variantA = $this->createMock(Email::class);
-        $variantA->expects($this->any())
-            ->method('getId')
-            ->will($this->returnValue(2));
-        $variantA->method('getTemplate')
-            ->will($this->returnValue(''));
-        $variantA->method('getSentCount')
-            ->will($this->returnValue(0));
-        $variantA->method('getVariantSentCount')
-            ->will($this->returnValue(0));
-        $variantA->method('getVariantStartDate')
-            ->will($this->returnValue($variantDate));
-        $variantA->method('getTranslations')
-            ->will($this->returnValue([]));
-        $variantA->method('isPublished')
-            ->will($this->returnValue(true));
-        $variantA->method('isVariant')
-            ->will($this->returnValue(true));
-        $variantA->method('getVariantSettings')
-            ->will($this->returnValue(['weight' => '25']));
-
-        $variantB = $this->createMock(Email::class);
-        $variantB->expects($this->any())
-            ->method('getId')
-            ->will($this->returnValue(3));
-        $variantB->method('getTemplate')
-            ->will($this->returnValue(''));
-        $variantB->method('getSentCount')
-            ->will($this->returnValue(0));
-        $variantB->method('getVariantSentCount')
-            ->will($this->returnValue(0));
-        $variantB->method('getVariantStartDate')
-            ->will($this->returnValue($variantDate));
-        $variantB->method('getTranslations')
-            ->will($this->returnValue([]));
-        $variantB->method('isPublished')
-            ->will($this->returnValue(true));
-        $variantB->method('isVariant')
-            ->will($this->returnValue(true));
-        $variantB->method('getVariantSettings')
-            ->will($this->returnValue(['weight' => '25']));
-
-        $this->emailEntity->method('getVariantChildren')
-            ->will($this->returnValue([$variantA, $variantB]));
-
-        $this->emailRepository->method('getDoNotEmailList')
-            ->will($this->returnValue([]));
-
-        $this->frequencyRepository->method('getAppliedFrequencyRules')
-            ->will($this->returnValue([]));
-
-        $this->entityManager->expects($this->any())
-            ->method('getRepository')
-            ->will(
-                $this->returnValueMap(
-                    [
-                        [\Mautic\LeadBundle\Entity\FrequencyRule::class, $this->frequencyRepository],
-                        [\Mautic\EmailBundle\Entity\Email::class, $this->emailRepository],
-                        [\Mautic\EmailBundle\Entity\Stat::class, $this->statRepository],
-                    ]
-                )
-            );
-
-        $this->companyRepository->method('getCompaniesForContacts')
-            ->will($this->returnValue([]));
-
-        $this->companyModel->method('getRepository')
-            ->willReturn($this->companyRepository);
-
-        $count   = 12;
-        $results = [];
-        while ($count > 0) {
-            $contact = [
-                'id'        => $count,
-                'email'     => "email{$count}@domain.com",
-                'firstname' => "firstname{$count}",
-                'lastname'  => "lastname{$count}",
-            ];
-            --$count;
-
-            $results[] = $this->emailModel->sendEmail($this->emailEntity, [$contact]);
-        }
-
-        $emailSettings = $this->emailModel->getEmailSettings($this->emailEntity);
-
-        // Sent counts should be as follows
-        // ID 1 => 6 50%
-        // ID 2 => 3 25%
-        // ID 3 => 3 25%
-
-        $counts = [];
-        foreach ($emailSettings as $id => $details) {
-            $counts[] = "$id:{$details['variantCount']}";
-        }
-        $counts = implode('; ', $counts);
-
-        $this->assertEquals(6, $emailSettings[1]['variantCount'], $counts);
-        $this->assertEquals(3, $emailSettings[2]['variantCount'], $counts);
-        $this->assertEquals(3, $emailSettings[3]['variantCount'], $counts);
+        $this->assertEquals(5, $emailSettings[1]['variantCount'], $counts);
+        $this->assertEquals(4, $emailSettings[2]['variantCount'], $counts);
+        $this->assertEquals(4, $emailSettings[3]['variantCount'], $counts);
     }
 
     /**
@@ -637,7 +521,9 @@ class EmailModelTest extends \PHPUnit\Framework\TestCase
             $this->doNotContact,
             $this->statsCollectionHelper,
             $this->corePermissions,
-            $this->connection
+            $this->connection,
+            $this->abTestSettingsService,
+            $this->variantConverterService
         );
 
         $emailModel->setTranslator($this->translator);
