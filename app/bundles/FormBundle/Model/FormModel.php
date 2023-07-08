@@ -524,19 +524,19 @@ class FormModel extends CommonFormModel
         $html               = $this->templatingHelper->getTemplating()->render(
             $theme.'MauticFormBundle:Builder:form.html.php',
             [
-                'fieldSettings'  => $this->getCustomComponents()['fields'],
-                'viewOnlyFields' => $this->getCustomComponents()['viewOnlyFields'],
-                'fields'         => $fields,
-                'contactFields'  => $this->leadFieldModel->getFieldListWithProperties(),
-                'companyFields'  => $this->leadFieldModel->getFieldListWithProperties('company'),
-                'form'           => $entity,
-                'theme'          => $theme,
-                'submissions'    => $submissions,
-                'lead'           => $lead,
-                'formPages'      => $pages,
-                'lastFormPage'   => $lastPage,
-                'style'          => $style,
-                'inBuilder'      => false,
+                'fieldSettings'          => $this->getCustomComponents()['fields'],
+                'doNotProgressiveFields' => $this->getDoNotProgressiveFields(),
+                'fields'                 => $fields,
+                'contactFields'          => $this->leadFieldModel->getFieldListWithProperties(),
+                'companyFields'          => $this->leadFieldModel->getFieldListWithProperties('company'),
+                'form'                   => $entity,
+                'theme'                  => $theme,
+                'submissions'            => $submissions,
+                'lead'                   => $lead,
+                'formPages'              => $pages,
+                'lastFormPage'           => $lastPage,
+                'style'                  => $style,
+                'inBuilder'              => false,
             ]
         );
 
@@ -731,6 +731,11 @@ class FormModel extends CommonFormModel
         }
 
         return $customComponents;
+    }
+
+    public function getDoNotProgressiveFields(): array
+    {
+        return ['button', 'captcha', 'freetext', 'freehtml', 'pagebreak', 'hidden'];
     }
 
     /**

@@ -15,7 +15,7 @@ class DisplayManager
     /**
      * @var array
      */
-    private $viewOnlyFields;
+    private $doNotProgressiveFields;
 
     /**
      * @var DisplayCounter
@@ -25,11 +25,11 @@ class DisplayManager
     /**
      * DisplayManager constructor.
      */
-    public function __construct(Form $form, array $viewOnlyFields = [])
+    public function __construct(Form $form, array $doNotProgressiveFields = [])
     {
-        $this->form           = $form;
-        $this->viewOnlyFields = $viewOnlyFields;
-        $this->displayCounter = new DisplayCounter($form);
+        $this->form                   = $form;
+        $this->doNotProgressiveFields = $doNotProgressiveFields;
+        $this->displayCounter         = new DisplayCounter($form);
     }
 
     /**
@@ -37,7 +37,7 @@ class DisplayManager
      */
     public function showForField(Field $field)
     {
-        if (in_array($field->getType(), $this->viewOnlyFields)) {
+        if (in_array($field->getType(), $this->doNotProgressiveFields)) {
             return true;
         }
 
@@ -67,7 +67,7 @@ class DisplayManager
         /** @var Field $fieldFromArray */
         $fields = $this->form->getFields()->toArray();
         foreach ($fields as $fieldFromArray) {
-            if (in_array($field->getType(), $this->viewOnlyFields)) {
+            if (in_array($field->getType(), $this->doNotProgressiveFields)) {
                 continue;
             }
 
@@ -99,7 +99,7 @@ class DisplayManager
 
     public function increaseDisplayedFields(Field $field)
     {
-        if (!in_array($field->getType(), $this->viewOnlyFields)) {
+        if (!in_array($field->getType(), $this->doNotProgressiveFields)) {
             $this->displayCounter->increaseDisplayedFields();
         }
     }
