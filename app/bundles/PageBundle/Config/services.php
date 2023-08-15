@@ -13,6 +13,7 @@ return function (ContainerConfigurator $configurator) {
         ->public();
 
     $excludes = [
+        'Token/DTO',
     ];
 
     $services->load('Mautic\\PageBundle\\', '../')

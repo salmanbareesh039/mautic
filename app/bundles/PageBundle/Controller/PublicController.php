@@ -23,6 +23,7 @@ use Mautic\PageBundle\Model\PageModel;
 use Mautic\PageBundle\Model\Tracking404Model;
 use Mautic\PageBundle\Model\VideoModel;
 use Mautic\PageBundle\PageEvents;
+use Mautic\PageBundle\Token\Email\EmailStatToken;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -431,6 +432,7 @@ class PublicController extends CommonFormController
         PrimaryCompanyHelper $primaryCompanyHelper,
         IpLookupHelper $ipLookupHelper,
         LoggerInterface $mauticLogger,
+        EmailStatToken $emailStatToken,
         $redirectId
     ) {
         $logger = $mauticLogger;
@@ -490,8 +492,8 @@ class PublicController extends CommonFormController
                 }
 
                 $leadArray = ($lead) ? $primaryCompanyHelper->getProfileFieldsWithPrimaryCompany($lead) : [];
-
-                $url = TokenHelper::findLeadTokens($url, $leadArray, true);
+                $url       = $emailStatToken->replace($ct, $url);
+                $url       = TokenHelper::findLeadTokens($url, $leadArray, true);
             }
 
             if (false !== strpos($url, $this->generateUrl('mautic_asset_download'))) {
