@@ -321,18 +321,16 @@ class EmailController extends FormController
                 $variantSettings = $c->getVariantSettings();
 
                 if (is_array($variantSettings) && isset($variantSettings['winnerCriteria'])) {
-                    if ($c->isPublished()) {
-                        if (!isset($lastCriteria)) {
-                            $lastCriteria = $variantSettings['winnerCriteria'];
-                        }
-
-                        // make sure all the variants are configured with the same criteria
-                        if ($lastCriteria != $variantSettings['winnerCriteria']) {
-                            $variantError = true;
-                        }
-
-                        $weight += $variantSettings['weight'];
+                    if (!isset($lastCriteria)) {
+                        $lastCriteria = $variantSettings['winnerCriteria'];
                     }
+
+                    // make sure all the variants are configured with the same criteria
+                    if ($lastCriteria != $variantSettings['winnerCriteria']) {
+                        $variantError = true;
+                    }
+
+                    $weight += $variantSettings['weight'];
                 } else {
                     $variantSettings['winnerCriteria'] = '';
                     $variantSettings['weight']         = 0;
@@ -393,6 +391,7 @@ class EmailController extends FormController
                     'trackables'   => $trackableLinks,
                     'logs'         => $logs,
                     'isEmbedded'   => $request->get('isEmbedded') ? $request->get('isEmbedded') : false,
+                    'stats'        => $request->query->get('stats', '0'),
                     'variants'     => [
                         'parent'     => $parent,
                         'children'   => $children,
