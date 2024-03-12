@@ -160,17 +160,18 @@ class TriggerController extends FormController
     /**
      * Generates new form and processes post data.
      *
-     * @param \Mautic\PointBundle\Entity\Trigger $entity
+     * @param Trigger      $entity
+     * @param array<mixed> $triggerEvents
      *
      * @return JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse|Response
      */
-    public function newAction(Request $request, $entity = null)
+    public function newAction(Request $request, $entity = null, array $triggerEvents = [])
     {
         /** @var \Mautic\PointBundle\Model\TriggerModel $model */
         $model = $this->getModel('point.trigger');
 
         if (!($entity instanceof Trigger)) {
-            /** @var \Mautic\PointBundle\Entity\Trigger $entity */
+            /** @var Trigger $entity */
             $entity = $model->getEntity();
         }
 
@@ -251,7 +252,8 @@ class TriggerController extends FormController
         } else {
             // clear out existing fields in case the form was refreshed, browser closed, etc
             $this->clearSessionComponents($request, $sessionId);
-            $addEvents = $deletedEvents = [];
+            $addEvents     = !empty($triggerEvents) ? $triggerEvents : [];
+            $deletedEvents = [];
         }
 
         return $this->delegateView([
@@ -451,19 +453,31 @@ class TriggerController extends FormController
      */
     public function cloneAction(Request $request, $objectId)
     {
+        /** @var TriggerModel $model */
         $model  = $this->getModel('point.trigger');
+        /** @var Trigger $entity */
         $entity = $model->getEntity($objectId);
+
+        $triggerEvents = [];
 
         if (null != $entity) {
             if (!$this->security->isGranted('point:triggers:create')) {
                 return $this->accessDenied();
             }
 
+            $existingActions = $entity->getEvents()->toArray();
+            foreach ($existingActions as $action) {
+                $action      = clone $action;
+                $actionArray = $action->convertToArray();
+                unset($actionArray['form']);
+                $triggerEvents[] = $actionArray;
+            }
+
             $entity = clone $entity;
             $entity->setIsPublished(false);
         }
 
-        return $this->newAction($request, $entity);
+        return $this->newAction($request, $entity, $triggerEvents);
     }
 
     /**
