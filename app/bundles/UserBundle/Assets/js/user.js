@@ -91,3 +91,31 @@ Mautic.onPermissionChange = function (changedPermission, bundle) {
         mQuery('.' + bundle + '_granted').html(granted);
     }
 };
+
+// Dark theme toggle
+document.addEventListener('DOMContentLoaded', function() {
+    let buttonToggle = document.querySelector('.dark-toggle');
+  
+    let theme = localStorage.getItem('theme');
+    if (theme) {
+      document.documentElement.setAttribute('color-theme', theme);
+    } else {
+      document.documentElement.setAttribute('color-theme', 'light');
+    }
+  
+    if (buttonToggle) {
+      buttonToggle.addEventListener('click', function() {
+        let themeCurrent = document.documentElement.getAttribute('color-theme');
+        let themeNew = themeCurrent === 'dark' ? 'light' : 'dark';
+  
+        document.documentElement.setAttribute('color-theme', themeNew);
+  
+        localStorage.setItem('theme', themeNew);
+      });
+    } else {
+      console.error('Theme toggle button not found!');
+    }
+  });
+  
+
+
