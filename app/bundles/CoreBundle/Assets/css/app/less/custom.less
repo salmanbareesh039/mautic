@@ -1,4 +1,4 @@
-@import "../../../../../../../node_modules/bootstrap/less/variables";
+@import "../../libraries/bootstrap/bootstrap-mautic-custom-variables";
 
 @media (min-width: @screen-md-min) {
   .modal-xl { width: 1140px; }
@@ -371,4 +371,24 @@ ul.media-list.media-list-feed div.media-object
   opacity: 0.6;
   pointer-events: none;
   background-color: #f2f2f2;
+}
+
+.features-container {
+  height: 370px;
+
+  .logo {
+    width: 90px;
+  }
+
+  .circles {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .target {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
 }
