@@ -93,29 +93,21 @@ Mautic.onPermissionChange = function (changedPermission, bundle) {
 };
 
 // Dark theme toggle
-document.addEventListener('DOMContentLoaded', function() {
-    let buttonToggle = document.querySelector('.dark-toggle');
-  
+Mautic.userOnLoad = function (container) {
     let theme = localStorage.getItem('theme');
     if (theme) {
-      document.documentElement.setAttribute('color-theme', theme);
+        document.documentElement.setAttribute('color-theme', theme);
     } else {
-      document.documentElement.setAttribute('color-theme', 'light');
+        document.documentElement.setAttribute('color-theme', 'light');
     }
-  
-    if (buttonToggle) {
-      buttonToggle.addEventListener('click', function() {
+
+    mQuery('.dark-toggle').on('click', function() {
         let themeCurrent = document.documentElement.getAttribute('color-theme');
         let themeNew = themeCurrent === 'dark' ? 'light' : 'dark';
-  
         document.documentElement.setAttribute('color-theme', themeNew);
-  
         localStorage.setItem('theme', themeNew);
-      });
-    } else {
-      console.error('Theme toggle button not found!');
-    }
-  });
+    });
+};
   
 
 
