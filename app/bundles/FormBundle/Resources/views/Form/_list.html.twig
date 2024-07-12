@@ -143,12 +143,12 @@
                         {% set catName = category ? category.title : 'mautic.core.form.uncategorized'|trans %}
                         {% set color = category ? '#' ~ category.color : 'inherit' %}
                         <span style="white-space: nowrap;">
-                          <span class="label label-default pa-4" style="border:1px solid #d5d5d5;background:{{ color }};"></span>
+                          <span class="label label-gray pa-4" style="border:1px solid #d5d5d5;background:{{ color }};"></span>
                           <span>{{ catName }}</span>
                         </span>
                     </td>
                     <td class="visible-md visible-lg">
-                        <a href="{{ path('mautic_form_action', {'objectAction': 'results', 'objectId': item.id}) }}" data-toggle="ajax" data-menu-link="mautic_form_index" class="btn btn-primary btn-xs" {% if 0 == i.submission_count %}disabled="disabled"{% endif %}>
+                        <a href="{{ path('mautic_form_action', {'objectAction': 'results', 'objectId': item.id}) }}" data-toggle="ajax" data-menu-link="mautic_form_index" class="label label-primary" {% if 0 == i.submission_count %}disabled="disabled"{% endif %}>
                            {{- 'mautic.form.form.viewresults'|trans({'%count%': i['submission_count']}) -}}
                         </a>
                     </td>
