@@ -291,21 +291,5 @@ ul.tag-cloud li {
     margin-right: 15px;
     margin-top: 10px;
     padding-bottom: 8px;
-    border-bottom: 1px solid #eee;
     font-size: 14px;
-}
-
-.lead-stats {
-    display: flex;
-    justify-content: space-between;
-    padding: 20px 15px;
-}
-
-.lead-stats .lead-stats-name {
-    display: block;
-    color: #8393a2;
-}
-.lead-stats .lead-stats-val {
-    display: block;
-    font-size: 21px;
 }
