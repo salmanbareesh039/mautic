@@ -3,7 +3,7 @@
 //
 // Variables
 // --------------------------------------------------
-
+@import "../../app/less/brand";
 
 //== Colors
 //
@@ -16,7 +16,7 @@
 @gray-light:             lighten(#0c0e10, 61.8%); // #777
 @gray-lighter:           lighten(#0c0e10, 87.5%); // #eee
 
-@brand-primary:         #4E5D9D;
+@brand-primary:         @primary-color;
 @brand-success:         #00B49C;
 @brand-info:            #35B4B9;
 @brand-warning:         #FDB933;
@@ -50,7 +50,7 @@
 @font-family-monospace:   Menlo, Monaco, Consolas, "Courier New", monospace;
 @font-family-base:        @font-family-sans-serif;
 
-@font-size-base:          13px;
+@font-size-base:          @font-size;
 @font-size-large:         ceil((@font-size-base * 1.20)); // ~16px
 @font-size-small:         ceil((@font-size-base * 0.80)); // ~11px
 
