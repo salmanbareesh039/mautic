@@ -173,18 +173,6 @@
 // ------------------------
 .nav-sidebar-variants(@bgcolor) {
   > li {
-    // nav-group line
-    &.nav-group {
-      &:after {
-        content: '';
-        position: absolute;
-        right: 0;
-        left: 50px;
-        bottom: 0;
-        border-bottom: 1px solid lighten(@bgcolor, 1.8%);
-      }
-    }
-
     > a {
       color: fade(contrast(@bgcolor), 50%);
       &:hover,
@@ -258,6 +246,14 @@
   &:before {
     background-color: @bgcolor;
   }
+}
+
+.outline() {
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+  &:hover { outline: 2px solid transparent; }
+  &:active, &.active,
+  &:focus, &.focus { outline: 2px solid var(--focus); }
 }
 
 // Alerts
