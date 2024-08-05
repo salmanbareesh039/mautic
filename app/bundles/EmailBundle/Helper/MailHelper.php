@@ -120,8 +120,6 @@ class MailHelper
      */
     protected $email;
 
-    protected ?string $emailType = null;
-
     /**
      * @var array
      */
@@ -1188,16 +1186,6 @@ class MailHelper
         $this->source = $source;
     }
 
-    public function getEmailType(): ?string
-    {
-        return $this->emailType;
-    }
-
-    public function setEmailType(?string $emailType): void
-    {
-        $this->emailType = $emailType;
-    }
-
     /**
      * @return Email|null
      */
@@ -1319,9 +1307,17 @@ class MailHelper
     {
         $headers = array_merge($this->headers, $this->getSystemHeaders());
 
-        // Personal and transactional emails do not contain unsubscribe header
-        $email = $this->getEmail();
-        if (empty($email) || self::EMAIL_TYPE_TRANSACTIONAL === $this->getEmailType()) {
+        /* Following emails does not contain unsubscribe header
+            - if email 'Send to unsubscribed contacts' is true
+            - if 'Disable unsubscribe link in header' setting is true in email configuration
+        */
+
+        $email               = $this->getEmail();
+        $unsubscribeBodyText = $this->coreParametersHelper->get('unsubscribe_text') ?? '';
+        if (!$email
+            || $email->getSendToDnc()
+            || $this->coreParametersHelper->get('disable_unsubscribe_link_header')
+            || !self::isUnsubscribeHeadersRequired($this->getBody(), $unsubscribeBodyText)) {
             return $headers;
         }
 
@@ -1339,6 +1335,15 @@ class MailHelper
         }
 
         return $headers;
+    }
+
+    public static function isUnsubscribeHeadersRequired(string $content, string $unsubscribeTextBody): bool
+    {
+        if (!str_contains($content, '{unsubscribe_url}')) {
+            return str_contains($content, '{unsubscribe_text}') && str_contains($unsubscribeTextBody, '|URL|');
+        }
+        
+        return true;
     }
 
     /**
@@ -1914,6 +1919,7 @@ class MailHelper
 
         if (array_key_exists('List-Unsubscribe', $headers)) {
             unset($headers['List-Unsubscribe']);
+            unset($headers['List-Unsubscribe-Post']);
             $this->setCustomHeaders($headers, false);
         }
     }
@@ -1930,6 +1936,7 @@ class MailHelper
             'source'      => $this->source,
             'tokens'      => $tokens,
             'utmTags'     => (!empty($this->email)) ? $this->email->getUtmTags() : [],
+            'includeDnc'  => !empty($this->email) && $this->email->getSendToDnc(),
         ];
     }
 

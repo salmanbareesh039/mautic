@@ -188,6 +188,7 @@ class MailHelperTest extends TestCase
         $email = new Email();
         $email->setFromAddress('override@nowhere.com');
         $email->setFromName('Test');
+        $email->setCustomHtml('<html>{unsubscribe_url}</html>');
         $email->setUseOwnerAsMailer(false);
         $email->setSubject('Test');
 
@@ -225,6 +226,7 @@ class MailHelperTest extends TestCase
 
         $email = new Email();
         $email->setSubject('Hello');
+        $email->setCustomHtml('<html>{unsubscribe_url}</html>');
         $singleMailHelper->setEmail($email);
 
         $singleMailHelper->addTo($this->contacts[0]['email']);
@@ -259,6 +261,7 @@ class MailHelperTest extends TestCase
         $mailer = new MailHelper($this->mockFactory, $symfonyMailer, $this->fromEmailHelper, $this->coreParametersHelper, $this->mailbox, $this->logger, $this->mailHashHelper, $this->router);
 
         $email = new Email();
+        $email->setCustomHtml('<html>{unsubscribe_url}</html>');
         $email->setUseOwnerAsMailer(true);
         $email->setSubject('Subject');
         $email->setCustomHtml('content');
@@ -333,6 +336,7 @@ class MailHelperTest extends TestCase
 
         $mailer = new MailHelper($this->mockFactory, $symfonyMailer, $this->fromEmailHelper, $this->coreParametersHelper, $this->mailbox, $this->logger, $this->mailHashHelper, $this->router);
         $email  = new Email();
+        $email->setCustomHtml('<html>{unsubscribe_url}</html>');
         $email->setUseOwnerAsMailer(true);
 
         $mailer->setEmail($email);
@@ -370,6 +374,7 @@ class MailHelperTest extends TestCase
         $email     = new Email();
 
         $email->setUseOwnerAsMailer(true);
+        $email->setCustomHtml('<html>{unsubscribe_url}</html>');
 
         $mailer->setEmail($email);
         $mailer->enableQueue();
@@ -459,7 +464,7 @@ class MailHelperTest extends TestCase
         $email         = new Email();
 
         $email->setSubject('Subject');
-        $email->setCustomHtml('content');
+        $email->setCustomHtml('<html>{unsubscribe_url}</html>');
 
         $mailer->setEmail($email);
         $mailer->send();
@@ -480,6 +485,7 @@ class MailHelperTest extends TestCase
         $symfonyMailer = new Mailer($transport);
         $mailer        = new MailHelper($this->mockFactory, $symfonyMailer, $this->fromEmailHelper, $this->coreParametersHelper, $this->mailbox, $this->logger, $this->mailHashHelper, $this->router);
         $email         = new Email();
+        $email->setCustomHtml('<html>{unsubscribe_url}</html>');
 
         // From address is set
         $email->setFromAddress('from@nowhere.com');
@@ -509,7 +515,7 @@ class MailHelperTest extends TestCase
         // From address is set
         $email->setFromAddress('from@nowhere.com');
         $email->setSubject('Subject');
-        $email->setCustomHtml('content');
+        $email->setCustomHtml('<html>{unsubscribe_url}</html>');
         $mailer->setEmail($email);
         $mailer->send();
         $replyTo = $mailer->message->getReplyTo() ? $mailer->message->getReplyTo()[0]->getAddress() : null;
@@ -802,21 +808,21 @@ class MailHelperTest extends TestCase
 
         $email = new Email();
         $email->setSubject('Test');
-        $email->setCustomHtml('<html></html>');
+        $email->setCustomHtml('<html>{unsubscribe_url}</html>');
         $lead = new Lead();
         $lead->setEmail('someemail@email.test');
         $mailer->setIdHash('hash');
         $mailer->setEmail($email);
         $mailer->setLead($lead);
 
-        $mailer->setEmailType(MailHelper::EMAIL_TYPE_MARKETING);
+        $email->setSendToDnc(false);
         $headers = $mailer->getCustomHeaders();
 
         $this->assertSame('<http://www.somedomain.cz/email/unsubscribe/hash/someemail@email.test/'.$emailSecret.'>', $headers['List-Unsubscribe']);
         $this->assertSame('List-Unsubscribe=One-Click', $headers['List-Unsubscribe-Post']);
 
         // There are no unsubscribe headers in transactional emails.
-        $mailer->setEmailType(MailHelper::EMAIL_TYPE_TRANSACTIONAL);
+        $email->setSendToDnc(true);
         $headers = $mailer->getCustomHeaders();
         $this->assertNull($headers['List-Unsubscribe'] ?? null);
         $this->assertNull($headers['List-Unsubscribe-Post'] ?? null);
@@ -832,6 +838,7 @@ class MailHelperTest extends TestCase
                     'List-Unsubscribe' => '<mailto:list@host.com?subject=unsubscribe>',
                 ]],
             ['secret_key', null, 'secret'],
+            ['disable_unsubscribe_link_header', null, false],
         ];
         $this->coreParametersHelper->method('get')->will($this->returnValueMap($params));
 
@@ -850,14 +857,14 @@ class MailHelperTest extends TestCase
 
         $email = new Email();
         $email->setSubject('Test');
-        $email->setCustomHtml('<html></html>');
+        $email->setCustomHtml('<html>{unsubscribe_url}</html>');
+        $email->setSendToDnc(false);
         $lead = new Lead();
         $lead->setEmail('someemail@email.test');
         $mailer->setIdHash('hash');
         $mailer->setEmail($email);
         $mailer->setLead($lead);
 
-        $mailer->setEmailType(MailHelper::EMAIL_TYPE_MARKETING);
         $headers = $mailer->getCustomHeaders();
 
         $this->assertSame('<http://www.somedomain.cz/email/unsubscribe/hash/someemail@email.test/'.$emailSecret.'>,<mailto:list@host.com?subject=unsubscribe>', $headers['List-Unsubscribe']);
@@ -1014,6 +1021,7 @@ class MailHelperTest extends TestCase
                         ['mailer_reply_to_email', false, '{tracking_pixel}'],
                         ['mailer_from_email', null, 'nobody@nowhere.com'],
                         ['mailer_from_name', null, 'No Body'],
+                        ['disable_unsubscribe_link_header', null, false],
                     ]
                 )
             );
@@ -1023,8 +1031,9 @@ class MailHelperTest extends TestCase
 
         $email = new Email();
         $email->setSubject('Test');
-        $email->setCustomHtml('content');
+        $email->setCustomHtml('<html>{unsubscribe_url}</html>');
         $email->setHeaders(['X-Mautic-Test-2' => '{tracking_pixel}']);
+        $email->setSendToDnc(false);
         $smtpMailHelper->setEmail($email);
         $smtpMailHelper->send();
 
