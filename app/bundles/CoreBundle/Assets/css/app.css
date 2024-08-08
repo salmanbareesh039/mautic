@@ -6902,6 +6902,53 @@ a.inline-token .text-muted {
 .map-options__item.btn.active:focus {
   outline: 0 !important;
 }
+.modal-content {
+  border-radius: var(--border-radius-lg);
+  box-shadow: none;
+}
+.modal-content .form-control,
+.modal-content .chosen-container-single .chosen-single,
+.modal-content .form-control.search.tt-input {
+  background-color: var(--field-alternate) !important;
+}
+.modal-content .form-control:hover,
+.modal-content .chosen-container-single .chosen-single:hover,
+.modal-content .form-control.search.tt-input:hover {
+  background-color: var(--field-hover-alternate) !important;
+}
+.form-type-modal-backdrop {
+  background-color: var(--background) !important;
+  opacity: 1 !important;
+  backdrop-filter: blur(10px);
+}
+.modal-backdrop {
+  backdrop-filter: blur(4px);
+}
+.modal-footer {
+  padding: var(--spacing-04) 0 0;
+}
+.modal-footer .modal-form-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1px;
+}
+.modal-footer .modal-form-buttons .btn {
+  height: var(--spacing-10);
+  display: inherit;
+}
+.modal-footer .modal-form-buttons .btn:first-child {
+  border-radius: var(--border-radius-md) 0 0 0;
+}
+.modal-footer .modal-form-buttons .btn + .btn {
+  border-radius: 0;
+  margin: 0;
+}
+.modal-footer .modal-form-buttons:has(.btn:nth-child(2)):not(:has(.btn:nth-child(3))) .btn {
+  flex-grow: 0.5;
+}
+.modal-footer .modal-form-buttons:has(.btn:nth-child(3)) .btn {
+  min-width: 25%;
+}
 .tile {
   --layout-density-padding-inline-local: 16px;
   position: relative;
